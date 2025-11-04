@@ -1,16 +1,44 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BookOpen } from "lucide-react";
+import { toast } from "sonner";
 
 const Login = () => {
   const [userId, setUserId] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const { login } = useAuth();
+
+  useEffect(() => {
+    // Auto-setup demo users on first load
+    const setupDemoUsers = async () => {
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/setup-demo-users`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+          }
+        );
+        const data = await response.json();
+        console.log('Demo users setup:', data.message);
+      } catch (error) {
+        console.error('Setup error:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    
+    setupDemoUsers();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +54,21 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  if (isInitializing) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground">Initializing system...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/10 to-accent/10">
@@ -71,11 +114,6 @@ const Login = () => {
             <p className="font-medium">Demo Credentials:</p>
             <p>Admin: adm / adm</p>
             <p>User: user / user</p>
-          </div>
-          <div className="mt-4 text-center">
-            <Button variant="link" onClick={() => window.location.href = '/setup'}>
-              First time? Initialize demo users
-            </Button>
           </div>
         </CardContent>
       </Card>
